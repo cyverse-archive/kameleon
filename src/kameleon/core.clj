@@ -25,7 +25,7 @@
   [ent sub-ent type opts]
   (let [[db-keys foreign-ent] (db-keys-and-foreign-ent type ent sub-ent opts)
         opts (when (:fk opts)
-               {:fk (raw (eng/prefix foreign-ent (:fk opts)))})]
+               {:fk (kc/raw (eng/prefix foreign-ent (:fk opts)))})]
     (merge {:table (:table sub-ent)
             :alias (:alias sub-ent)
             :rel-type type}
@@ -80,3 +80,75 @@
      `(kc/join* ~query :left ~table (eng/pred-map ~(eng/parse-where clause))))
   ([query type table clause]
      `(kc/join* ~query ~type ~table (eng/pred-map ~(eng/parse-where clause)))))
+
+(defn- force-prefix [ent fields]
+  (for [field fields]
+    (if (vector? field)
+      [(utils/generated (eng/prefix ent (first field))) (second field)]
+      (eng/prefix ent field))))
+
+(defn- add-aliases [query as]
+  (update-in query [:aliases] set/union as))
+
+(defn- merge-query [query neue]
+  (let [merged (reduce #(kc/merge-part % neue %2)
+                       query
+                       [:fields :group :order :where :params :joins :post-queries])]
+    (-> merged
+        (add-aliases (:aliases neue)))))
+
+(defn- sub-query [query sub-ent func]
+  (let [neue (kc/select* sub-ent)
+        neue (eng/bind-query neue (func neue))
+        neue (-> neue
+                 (update-in [:fields] #(force-prefix sub-ent %))
+                 (update-in [:order] #(force-prefix sub-ent %))
+                 (update-in [:group] #(force-prefix sub-ent %)))]
+    (merge-query query neue)))
+
+(defn- with-many-to-many
+  [rel query ent func]
+  (let [{:keys [lfk rfk rpk join-table]} rel
+        pk (get-in query [:ent :pk])
+        table (keyword (eng/table-alias ent))]
+    (kc/post-query
+     query (partial
+            map
+            #(assoc % table
+                    (kc/select ent
+                            (kc/join :inner join-table (= rfk rpk))
+                            (func)
+                            (kc/where {lfk (get % pk)})))))))
+
+(defn- with-later [rel query ent func]
+  (let [fk (:fk rel)
+        pk (get-in query [:ent :pk])
+        table (keyword (eng/table-alias ent))]
+    (kc/post-query query 
+                (partial map 
+                         #(assoc % table
+                                 (kc/select ent
+                                         (func)
+                                         (kc/where {fk (get % pk)})))))))
+
+(defn- with-now [rel query ent func]
+  (let [table (if (:alias rel)
+                [(:table ent) (:alias ent)]
+                (:table ent))
+        query (kc/join query table (= (:pk rel) (:fk rel)))]
+    (sub-query query ent func)))
+
+(defn kameleon-with*
+  [query sub-ent func]
+  (let [rel (kc/get-rel (:ent query) sub-ent)]
+    (cond
+     (not rel) (throw+ {:type ::no-relationship :table (:table sub-ent)})
+     (#{:has-one :belongs-to} (:rel-type rel)) (with-now rel query sub-ent func)
+     (= :has-many (:rel-type rel)) (with-later rel query sub-ent func)
+     (= :many-to-many (:rel-type rel)) (with-many-to-many rel query sub-ent func))))
+
+(defmacro kameleon-with
+  [query ent & body]
+  `(kameleon-with* ~query ~ent (fn [q#]
+                                 (-> q#
+                                     ~@body))))
