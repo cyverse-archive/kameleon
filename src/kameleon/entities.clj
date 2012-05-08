@@ -1,5 +1,8 @@
 (ns kameleon.entities
-  (:use [korma.core]))
+  (:use [kameleon.core]
+        [korma.core]))
+
+(declare workspace template_group analyses)
 
 ;; Users who have logged into the DE.
 (defentity users
@@ -16,6 +19,12 @@
   (pk :hid)
   (entity-fields :id :name :description)
   (belongs-to workspace)
-  (has-many template_group_template))
+  (many-to-many analyses :template_group_template
+                {:lfk :template_group_id
+                 :rfk :template_id}))
 
-;; TODO: figure out how to do a many-to-many relationship with a join table.
+;; An app.
+(defentity analyses
+  (pk :hid)
+  (table :transformation_activity)
+  (entity-fields :id :name :location :description))
