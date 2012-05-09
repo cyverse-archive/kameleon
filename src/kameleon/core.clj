@@ -152,3 +152,27 @@
   `(kameleon-with* ~query ~ent (fn [q#]
                                  (-> q#
                                      ~@body))))
+
+
+;; This was a failed attempt to import vars from korma.core into this namespace
+;; so that they're also exportable from this namespace to other namespaces.  It
+;; partially works, but I ran into problems with dynamic vars not being declared
+;; dynamic, and I was afraid we might run into some weird duplication bugs.
+;; I'm going to leave this out for the time being, and only add it back in if
+;; it appears to be necessary to make client code useable.
+
+;; (def ^{:private true} current-ns-vars
+;;   (hash-set (keys (ns-map *ns*))))
+
+;; (defn- not-in-current-ns
+;;   [name]
+;;   (not (current-ns-vars name)))
+
+;; (defn- alias-ns-publics
+;;   [ns-sym]
+;;   (dorun
+;;    (map
+;;     (fn [[name sym]] (eval (list 'def name sym)))
+;;     (filter not-in-current-ns (ns-publics ns-sym)))))
+
+;; (alias-ns-publics 'korma.core)
