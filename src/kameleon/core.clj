@@ -1,10 +1,12 @@
 (ns kameleon.core
   (:use [clojure.pprint :only [pprint]]
         [slingshot.slingshot :only [throw+]])
-  (:require [korma.sql.engine :as eng]
+  (:require [korma.config :as conf]
+            [korma.sql.engine :as eng]
             [korma.sql.fns :as sfns]
             [korma.sql.utils :as utils]
             [clojure.set :as set]
+            [clojure.string :as string]
             [korma.db :as db]
             [korma.core :as kc]))
 
@@ -107,7 +109,7 @@
     (merge-query query neue)))
 
 (defn- with-many-to-many
-  [rel query ent func]
+  [rel query ent func opts]
   (let [{:keys [lfk rfk rpk join-table]} rel
         pk (get-in query [:ent :pk])
         table (keyword (eng/table-alias ent))]
@@ -120,39 +122,92 @@
                             (func)
                             (kc/where {lfk (get % pk)})))))))
 
-(defn- with-later [rel query ent func]
+(defn- with-later-fn
+  [table ent func known unknown]
+  (partial
+   map #(assoc % table
+               (kc/select ent (func)
+                          (kc/where {unknown (get % known)})))))
+
+(defn- with-one-later-fn
+  [table ent func known unknown]
+  (partial
+   map #(assoc % table
+               (first (kc/select ent (func)
+                                 (kc/where {unknown (get % known)}))))))
+
+(defn- with-later [rel query ent func opts]
   (let [fk (:fk rel)
         pk (get-in query [:ent :pk])
         table (keyword (eng/table-alias ent))]
-    (kc/post-query query 
-                (partial map 
-                         #(assoc % table
-                                 (kc/select ent
-                                         (func)
-                                         (kc/where {fk (get % pk)})))))))
+    (kc/post-query query (with-later-fn table ent func pk fk))))
 
-(defn- with-now [rel query ent func]
+(defn- with-one-later [rel query ent func opts]
+  (let [fk (:fk rel)
+        pk (get-in query [:ent :pk])
+        table (keyword (eng/table-alias ent))]
+    (kc/post-query query (with-one-later-fn table ent func pk fk))))
+
+(defn- with-now [rel query ent func opts]
   (let [table (if (:alias rel)
                 [(:table ent) (:alias ent)]
                 (:table ent))
         query (kc/join query table (= (:pk rel) (:fk rel)))]
     (sub-query query ent func)))
 
+(defn- with-has-one
+  [rel query ent func opts]
+  (if (:later opts)
+    (with-one-later rel query ent func opts)
+    (with-now rel query ent func opts)))
+
+;; FIXME: this will only work with the default naming strategy.
+(defn- extract-field-keyword
+  [field]
+  (let [{:keys [delimiters]} (or eng/*bound-options* @conf/options)
+        [begin end] delimiters
+        quoted-name (last (string/split (get field :korma.sql.utils/generated) #"[.]"))
+        regex (re-pattern (str "^" begin "|" end "$"))]
+    (keyword (string/replace quoted-name regex ""))))
+
+(defn- with-belongs-to-later
+  [rel query ent func opts]
+  (let [fk (extract-field-keyword (:fk rel))
+        pk (:pk rel)
+        table (keyword (eng/table-alias ent))]
+    (kc/post-query query (with-one-later-fn table ent func fk pk))))
+
+(defn- with-belongs-to
+  [rel query ent func opts]
+  (if (:later opts)
+    (with-belongs-to-later rel query ent func opts)
+    (with-now rel query ent func opts)))
+
+(def ^:private with-handlers
+  {:has-many with-one-later
+   :many-to-many with-many-to-many
+   :has-one with-has-one
+   :belongs-to with-belongs-to})
+
 (defn kameleon-with*
-  [query sub-ent func]
-  (let [rel (kc/get-rel (:ent query) sub-ent)]
-    (cond
-     (not rel) (throw+ {:type ::no-relationship :table (:table sub-ent)})
-     (#{:has-one :belongs-to} (:rel-type rel)) (with-now rel query sub-ent func)
-     (= :has-many (:rel-type rel)) (with-later rel query sub-ent func)
-     (= :many-to-many (:rel-type rel)) (with-many-to-many rel query sub-ent func))))
+  [query sub-ent func opts]
+  (let [rel (kc/get-rel (:ent query) sub-ent)
+        handler-fn (get with-handlers (:rel-type rel))]
+    (when (nil? handler-fn)
+      (throw+ {:type ::no-relationship :table (:table sub-ent)}))
+    (handler-fn rel query sub-ent func opts)))
 
 (defmacro kameleon-with
   [query ent & body]
   `(kameleon-with* ~query ~ent (fn [q#]
                                  (-> q#
-                                     ~@body))))
+                                     ~@body)) {}))
 
+(defmacro with-object
+  [query ent & body]
+  `(kameleon-with* ~query ~ent (fn [q#]
+                                 (-> q#
+                                     ~@body)) {:later true}))
 
 ;; This was a failed attempt to import vars from korma.core into this namespace
 ;; so that they're also exportable from this namespace to other namespaces.  It
