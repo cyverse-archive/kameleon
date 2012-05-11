@@ -3,15 +3,19 @@
         [korma.core]))
 
 (declare users workspace template_group transformation_activity
-         integration_data deployed_components deployed_component_data_files
-         transformation_steps transformations output_mapping input_mapping
-         template inputs outputs info_type data_formats multiplicity
-         property_group property property_type)
+         transformation_activity_references integration_data deployed_components
+         deployed_component_data_files transformation_steps transformations
+         output_mapping input_mapping template inputs outputs info_type
+         data_formats multiplicity property_group property property_type
+         value_type validator rule rule_type rule_subtype analysis_group_listing
+         analysis_listing deployed_component_listing dataelementpreservation
+         importedworkflow notification_set notification ratings)
 
 ;; Users who have logged into the DE.
 (defentity users
   (entity-fields :username)
-  (has-one workspace {:fk :user_id}))
+  (has-one workspace {:fk :user_id})
+  (has-many ratings {:fk :user_id}))
 
 ;; The workspaces of users who have logged into the DE.
 (defentity workspace
@@ -43,7 +47,13 @@
                  :rfk :template_group_id})
   (many-to-many transformation_steps :transformation_task_steps
                 {:lfk :transformation_task_id
-                 :rfk :transformation_step_id}))
+                 :rfk :transformation_step_id})
+  (has-many transformation_activity_references)
+  (has-many ratings))
+
+;; References associated with an app.
+(defentity transformation_activity_references
+  (entity-fields :reference_text))
 
 ;; Information about who integrated an app or a deployed component.
 (defentity integration_data
@@ -159,9 +169,118 @@
   (entity-fields :id :name :description :label :defalut_value :is_visible
                  :ordering :omit_if_blank)
   (belongs-to data_object {:fk :dataobject_id})
-  (belongs-to property_type {:fk :property_type}))
+  (belongs-to property_type {:fk :property_type})
+  (belongs-to validator {:fk :validator}))
 
 ;; The type of a single property.
 (defentity property_type
   (pk :hid)
-  (entity-fields :id :name :description :label :deprecated :display_order))
+  (entity-fields :id :name :description :label :deprecated :display_order)
+  (belongs-to value_type))
+
+;; The type of value associated with a property.  This is used to determine
+;; which rule types may be associated with a property.
+(defentity value_type
+  (pk :hid)
+  (entity-fields :id :name :description)
+  (has-one property_type)
+  (many-to-many rule_type :rule_type_value_type
+                {:lfk :value_type_id
+                 :rfk :rule_type_id}))
+
+;; Validators are used to describe how a property should be validated.
+(defentity validator
+  (pk :hid)
+  (entity-fields :id :name :description :label :required)
+  (many-to-many rule :validator_rule
+                {:lfk :validator_id
+                 :rfk :rule_id}))
+
+;; Rules are used to describe individual validation steps for a property.
+(defentity rule
+  (pk :hid)
+  (entity-fields :id :name :description :label)
+  (belongs-to rule_type {:fk :rule_type}))
+
+;; Rule types indicate the validation method to use.
+(defentity rule_type
+ (pk :hid)
+  (entity-fields :id :name :description :label :deprecated :display_order
+                 :rule_description_format)
+  (belongs-to rule_subtype)
+  (many-to-many value_type :rule_type_value_type
+                {:lfk :rule_type_id}
+                {:rfk :value_type_id}))
+
+;; Rule arguments will have to be handled in code until Korma can be enhanced
+;; to accept composite primary keys.
+
+;; Rule subtypes are used to distinguish different flavors of values that
+;; rules can be applied to.  For example, Number value types are segregated
+;; into Integer and Double subtypes.
+(defentity rule_subtype
+  (pk :hid)
+  (entity-fields :id :name :description))
+
+;; A view used to list analysis groups.
+(defentity analysis_group_listing
+  (pk :hid)
+  (entity-fields :id :name :description :workspace_id :is_public)
+  (many-to-many analysis_group_listing :template_group_group
+                {:lfk :parent_group_id
+                 :rfk :subgroup_id})
+  (many-to-many analysis_listing :template_group_template
+                {:lfk :template_group_id
+                 :rfk :template_id}))
+
+;; A view used to list analyses.
+(defentity analysis_listing
+  (pk :hid)
+  (entity-fields :id :name :description :integrator_name :integrator_email
+                 :integration_date :edited_date :wikiurl :average_rating
+                 :is_public :step_count :deleted :disabled :overall_job_type)
+  (has-many deployed_component_listing {:fk :analysis_id}))
+
+;; A view used to list deployed components.
+(defentity deployed_component_listing
+  (entity-fields :analysis_id :execution_order :deployed_component_hid
+                 :deployed_component_id :name :description :location :type
+                 :version :attribution))
+
+;; Retained information about data objects.
+(defentity dataelementpreservation
+  (pk :hid)
+  (entity-fields :templateuuid :infotypename :fileformatname :datecreated))
+
+;; Records of workflow metadata elements that have been imported.
+(defentity importedworkflow
+  (pk :hid)
+  (entity-fields :importjson :analysisuuid :datecreated))
+
+;; Notification sets are groups of notifications.
+(defentity notification_set
+  (pk :hid)
+  (entity-fields :id :name :template_id)
+  (many-to-many notification :notification_set_notification
+                {:lfk :notification_set_id
+                 :rfk :notification_id}))
+
+;; Notifications are used to coordinate UI panels in an analysis.
+(defentity notification
+  (pk :hid)
+  (entity-fields :id :name :sender :type))
+
+;; Notification receivers will have to be handled in code until Korma can be
+;; enhanced to allow composite primary keys.
+
+;; Application ratings.
+(defentity ratings
+  (entity-fields :rating :comment_id)
+  (belongs-to users {:fk :user_id})
+  (belongs-to transformation_activity))
+
+;; A view for listing rating information.
+(defentity rating_listing
+  (entity-fields :analysis_id :user_id :comment_id :user_rating)
+  (belongs-to transformation_activity {:fk :analysis_id})
+  (belongs-to users {:fk :user_id}))
