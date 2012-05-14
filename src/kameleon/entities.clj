@@ -113,9 +113,9 @@
                 {:lfk :template_id
                  :rfk :property_group_id}))
 
-;; Input and output definitions.  Once again, two entities are associated with
-;; the same table to allow us to define multiple relationships between the same
-;; two tables.
+;; Input and output definitions.  Once again, multiple entities are associated
+;; with the same table to allow us to define multiple relationships between
+;; the same two tables.
 (defentity inputs
   (pk :hid)
   (table :dataobjects :inputs)
