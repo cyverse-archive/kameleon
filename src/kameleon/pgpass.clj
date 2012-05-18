@@ -23,18 +23,20 @@
 (defn- find-password
   "Searches for the password for our search criteria in the .pgpass file.
    Returns the matching password if one is found.  Returns nil otherwise."
-  [f search]
-  (with-open [in (reader f)]
-    (let [entries (map line->entry (line-seq in))
-          match (first (filter (partial entry-matches search) entries))]
-      (if (nil? match) nil (:password match)))))
+  [in search]
+  (let [entries (map line->entry (line-seq in))
+        match (first (filter (partial entry-matches search) entries))]
+    (if (nil? match) nil (:password match))))
 
 (defn get-password
   "Obtains the database password from the user's .pgpass file for the given
    host, port, database and username.  Returns nil if the password can't be
    obtained."
-  [host port db user]
-  (let [f (file (System/getProperty "user.home") ".pgpass")]
-    (if (and (.isFile f) (.canRead f))
-      (find-password f {:host host :port port :db db :user user})
-      nil)))
+  ([host port db user]
+     (let [f (file (System/getProperty "user.home") ".pgpass")]
+       (if (and (.isFile f) (.canRead f))
+         (with-open [in (reader f)]
+           (find-password in {:host host :port port :db db :user user}))
+         nil)))
+  ([in search]
+     (find-password in search)))
