@@ -98,3 +98,24 @@
   [id]
   (let [hid (:hid (load-required-category {:id id}))]
     (load-apps (get-app-ids-in-categories (load-ids-in-category-tree hid)))))
+
+(defn current-db-version
+  "Determines the current database version."
+  []
+  (-> (select version
+              (fields [:version])
+              (order :version :DESC)
+              (limit 1))
+      ffirst
+      val))
+
+(defn check-db-version
+  "Verifies that the current database version is the same as the version that
+   is compatible with this version of Kameleon."
+  []
+  (let [current    (current-db-version)
+        compatible (compatible-db-version)]
+    (when (not= current compatible)
+      (throw+ {:type ::incorrect-db-version
+               :current current
+               :compatible compatible}))))

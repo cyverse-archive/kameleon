@@ -284,3 +284,7 @@
   (entity-fields :analysis_id :user_id :comment_id :user_rating)
   (belongs-to transformation_activity {:fk :analysis_id})
   (belongs-to users {:fk :user_id}))
+
+;; Database version entries.
+(defentity version
+  (entity-fields :version :applied))

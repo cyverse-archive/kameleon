@@ -8,7 +8,14 @@
             [clojure.set :as set]
             [clojure.string :as string]
             [korma.db :as db]
-            [korma.core :as kc]))
+            [korma.core :as kc])
+  (:import [java.io InputStreamReader PushbackReader]
+           [java.net URL]
+           [java.util.jar Manifest]))
+
+(def ^:private project-clj-location
+  "The location of the project.clj file within the JAR file."
+  "/META-INF/leiningen/org.iplantc/kameleon/project.clj")
 
 (defn many-to-many-keys
   "Determines and returns the keys needed for a many-to-many relationship."
@@ -279,6 +286,35 @@
   `(kameleon-with* ~query ~ent (fn [q#]
                                  (-> q#
                                      ~@body)) {:later true}))
+
+(defn- get-location
+  "Gets the location of the source file containing this source file."
+  []
+  (.. (class get-location)
+      getProtectionDomain
+      getCodeSource
+      getLocation))
+
+(defn- read-project-clj
+  "Reads the project.clj file from the JAR file containing this source file."
+  []
+  (let [location (get-location)]
+    (when-not (nil? location)
+      (-> (str "jar:" location "!" project-clj-location)
+          (URL.)
+          (.openStream)
+          (InputStreamReader.)
+          (PushbackReader.)
+          (read)))))
+
+(defn compatible-db-version
+  "Retrieves the database version that the current version of Kameleon is
+   compatible with.  The database version is stored in this project's
+   MANIFEST.MF file."
+  []
+  (let [attrs (read-project-clj)]
+    (get-in (into {} (map vec (partition 2 (drop 3 attrs))))
+            [:manifest "db-version"])))
 
 ;; This was a failed attempt to import vars from korma.core into this namespace
 ;; so that they're also exportable from this namespace to other namespaces.  It
