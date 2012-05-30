@@ -2,20 +2,26 @@
   (:use [kameleon.core]
         [korma.core]))
 
-(declare users workspace template_group transformation_activity
+(declare users collaborator workspace template_group transformation_activity
          transformation_activity_references integration_data deployed_components
          deployed_component_data_files transformation_steps transformations
          output_mapping input_mapping template inputs outputs info_type
          data_formats multiplicity property_group property property_type
          value_type validator rule rule_type rule_subtype analysis_group_listing
          analysis_listing deployed_component_listing dataelementpreservation
-         importedworkflow notification_set notification ratings)
+         importedworkflow notification_set notification ratings collaborators)
 
-;; Users who have logged into the DE.
+;; Users who have logged into the DE.  Multiple entities are associated with
+;; the same table in order to allow us to have multiple relationships between
+;; the same two tables.
 (defentity users
   (entity-fields :username)
   (has-one workspace {:fk :user_id})
   (has-many ratings {:fk :user_id}))
+(defentity collaborator
+  (table :users :collaborator)
+  (entity-fields :username)
+  (has-many collaborators {:fk :collaborator_id}))
 
 ;; The workspaces of users who have logged into the DE.
 (defentity workspace
@@ -288,3 +294,8 @@
 ;; Database version entries.
 (defentity version
   (entity-fields :version :applied))
+
+;; Associates users with other users for collaboration.
+(defentity collaborators
+  (belongs-to users {:fk :user_id})
+  (belongs-to collaborator {:fk :collaborator_id}))
