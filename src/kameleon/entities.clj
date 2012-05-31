@@ -299,3 +299,9 @@
 (defentity collaborators
   (belongs-to users {:fk :user_id})
   (belongs-to collaborator {:fk :collaborator_id}))
+
+;; Contains genomic metadata.
+(defentity genome_reference
+  (table :genome_reference)
+  (entity-fields :id :uuid :name :path :deleted :created_by
+                 :created_on :last_modified_by :last_modified_on))
