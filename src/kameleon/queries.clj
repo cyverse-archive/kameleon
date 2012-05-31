@@ -121,7 +121,7 @@
                :compatible compatible}))))
 
 (defn get-collaborators
-  "Gets the list of collaborators for a given fully-qualified username."
+  "Gets the list of collaborators for a given fully qualified username."
   [username]
   (map :username
        (select collaborators
@@ -161,8 +161,28 @@
                        :collaborator_id collaborator-id})))))
 
 (defn add-collaborators
-  "Adds collaborators for a given fully-qualified username."
+  "Adds collaborators for a given fully qualified username."
   [username collaborators]
   (let [user-id (get-user-id username)
         collaborator-ids (get-user-ids collaborators)]
-    (dorun (map #(add-collaboration user-id %) collaborator-ids))))
+    (dorun (map (partial add-collaboration user-id) collaborator-ids))))
+
+(defmacro ^:private user-id-subquery
+  "Performs a subquery for a user ID."
+  [username]
+  `(subselect users
+              (fields :id)
+              (where {:username ~username})))
+
+(defn- remove-collaboration
+  "Removes a collaboration from the database if it exists."
+  [user collab]
+  (delete collaborators
+          (where
+           {:user_id         [= (user-id-subquery user)]
+            :collaborator_id [= (user-id-subquery collab)]})))
+
+(defn remove-collaborators
+  "Removes collaborators for a given fully qualified username."
+  [username collaborators]
+  (dorun (map (partial remove-collaboration username) collaborators)))
