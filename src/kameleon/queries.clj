@@ -119,3 +119,50 @@
       (throw+ {:type ::incorrect-db-version
                :current current
                :compatible compatible}))))
+
+(defn get-collaborators
+  "Gets the list of collaborators for a given fully-qualified username."
+  [username]
+  (map :username
+       (select collaborators
+               (fields :collaborator.username)
+               (join users)
+               (join collaborator)
+               (where {:users.username username}))))
+
+(defn get-user-id
+  "Gets the internal user identifier for a fully qualified username.  A new
+   entry will be added if the user doesn't already exist in the database."
+  [username]
+  (let [get-id   (fn [nm] (:id (first (select users (where {:username nm})))))
+        add-user (fn [nm] (insert users (values {:username nm})) (get-id nm))
+        id     (get-id username)]
+    (if (nil? id)
+      (add-user username)
+      id)))
+
+(defn get-user-ids
+  "Gets the internal user identifiers for each username in a collection of
+   fully qualified usernames.  Entries will be added for users that don't exist
+   in the database."
+  [usernames]
+  (map get-user-id usernames))
+
+(defn- add-collaboration
+  "Adds a collaboration to the database if the collaboration doesn't exist
+   already."
+  [user-id collaborator-id]
+  (let [results (select collaborators
+                        (where {:user_id user-id
+                                :collaborator_id collaborator-id}))]
+    (when (empty? results)
+      (insert collaborators
+              (values {:user_id user-id
+                       :collaborator_id collaborator-id})))))
+
+(defn add-collaborators
+  "Adds collaborators for a given fully-qualified username."
+  [username collaborators]
+  (let [user-id (get-user-id username)
+        collaborator-ids (get-user-ids collaborators)]
+    (dorun (map #(add-collaboration user-id %) collaborator-ids))))
