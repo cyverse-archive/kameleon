@@ -167,12 +167,12 @@
         collaborator-ids (get-user-ids collaborators)]
     (dorun (map (partial add-collaboration user-id) collaborator-ids))))
 
-(defmacro ^:private user-id-subquery
+(defn- user-id-subquery
   "Performs a subquery for a user ID."
   [username]
-  `(subselect users
-              (fields :id)
-              (where {:username ~username})))
+  (subselect users
+             (fields :id)
+             (where {:username username})))
 
 (defn- remove-collaboration
   "Removes a collaboration from the database if it exists."
