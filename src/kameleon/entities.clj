@@ -307,8 +307,8 @@
 (defentity created_by
   (table :users :created_by)
   (entity-fields :username)
-  (has-many genome_reference {:fk :created_by}))
+  (belongs-to genome_reference {:fk :created_by}))
 (defentity last_modified_by
   (table :users :last_modified_by)
   (entity-fields :username)
-  (has-many genome_reference {:fk :last_modified_by}))
+  (belongs-to genome_reference {:fk :last_modified_by}))
