@@ -303,12 +303,14 @@
 ;; Contains genomic metadata.
 (defentity genome_reference
   (table :genome_reference)
-  (entity-fields :uuid :name :path :deleted :created_on :last_modified_on))
+  (entity-fields :uuid :name :path :deleted :created_on :last_modified_on)
+  (belongs-to created_by {:fk :created_by})
+  (belongs-to last_modified_by {:fk :last_modified_by}))
 (defentity created_by
   (table :users :created_by)
   (entity-fields :username)
-  (belongs-to genome_reference {:fk :created_by}))
+  (has-one genome_reference {:fk :created_by}))
 (defentity last_modified_by
   (table :users :last_modified_by)
   (entity-fields :username)
-  (belongs-to genome_reference {:fk :last_modified_by}))
+  (has-one genome_reference {:fk :last_modified_by}))
