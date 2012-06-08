@@ -9,7 +9,8 @@
          data_formats multiplicity property_group property property_type
          value_type validator rule rule_type rule_subtype analysis_group_listing
          analysis_listing deployed_component_listing dataelementpreservation
-         importedworkflow notification_set notification ratings collaborators)
+         importedworkflow notification_set notification ratings collaborators
+         genome_reference created_by last_modified_by)
 
 ;; Users who have logged into the DE.  Multiple entities are associated with
 ;; the same table in order to allow us to have multiple relationships between
