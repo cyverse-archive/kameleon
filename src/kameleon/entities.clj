@@ -10,7 +10,7 @@
          value_type validator rule rule_type rule_subtype analysis_group_listing
          analysis_listing deployed_component_listing dataelementpreservation
          importedworkflow notification_set notification ratings collaborators
-         genome_reference created_by last_modified_by)
+         genome_reference created_by last_modified_by data_source)
 
 ;; Users who have logged into the DE.  Multiple entities are associated with
 ;; the same table in order to allow us to have multiple relationships between
@@ -130,7 +130,8 @@
                  :retain :is_implicit)
   (belongs-to info_type {:fk :info_type})
   (belongs-to data_formats {:fk :data_format})
-  (belongs-to multiplicity {:fk :multiplicity}))
+  (belongs-to multiplicity {:fk :multiplicity})
+  (belongs-to data_source {:fk :data_source_id}))
 (defentity outputs
   (pk :hid)
   (table :dataobjects :outputs)
@@ -138,7 +139,8 @@
                  :retain :is_implicit)
   (belongs-to info_type {:fk :info_type})
   (belongs-to data_formats {:fk :data_format})
-  (belongs-to multiplicity {:fk :multiplicity}))
+  (belongs-to multiplicity {:fk :multiplicity})
+  (belongs-to data_source {:fk :data_source_id}))
 (defentity data_object
   (pk :hid)
   (table :dataobjects :data_object)
@@ -146,7 +148,8 @@
                  :retain :is_implicit)
   (belongs-to info_type {:fk :info_type})
   (belongs-to data_formats {:fk :data_format})
-  (belongs-to multiplicity {:fk :multiplicity}))
+  (belongs-to multiplicity {:fk :multiplicity})
+  (belongs-to data_source {:fk :data_source_id}))
 
 ;; The type of information stored in a data object.
 (defentity info_type
@@ -315,3 +318,8 @@
   (table :users :last_modified_by)
   (entity-fields :username)
   (has-one genome_reference {:fk :last_modified_by}))
+
+;; Data source.
+(defentity data_source
+  (table :data_source)
+  (entity-fields :uuid :name :description))
