@@ -322,4 +322,4 @@
 ;; Data source.
 (defentity data_source
   (table :data_source)
-  (entity-fields :uuid :name :description))
+  (entity-fields :uuid :name :description :display))
