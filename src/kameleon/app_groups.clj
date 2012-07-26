@@ -25,3 +25,11 @@
   (concat (get-root-app-group-ids {:id workspace-id})
           (get-root-app-group-ids {:is_public true})))
 
+(defn load-root-app-groups-for-all-users
+  "Gets the list of all root app group ids."
+  []
+  (select workspace
+          (fields [:workspace.root_analysis_group_id :app_group_id]
+                  [:workspace.id :workspace_id]
+                  :users.username)
+          (join users)))
