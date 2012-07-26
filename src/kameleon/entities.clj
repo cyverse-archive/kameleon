@@ -249,7 +249,8 @@
   (entity-fields :id :name :description :integrator_name :integrator_email
                  :integration_date :edited_date :wikiurl :average_rating
                  :is_public :step_count :deleted :disabled :overall_job_type)
-  (has-many deployed_component_listing {:fk :analysis_id}))
+  (has-many deployed_component_listing {:fk :analysis_id})
+  (has-many ratings {:fk :transformation_activity_id}))
 
 ;; A view used to list deployed components.
 (defentity deployed_component_listing
