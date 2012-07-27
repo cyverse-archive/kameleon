@@ -2,7 +2,8 @@
   (:use [kameleon.core]
         [kameleon.entities]
         [korma.core]
-        [slingshot.slingshot :only [throw+]]))
+        [slingshot.slingshot :only [throw+]])
+  (:import [java.util UUID]))
 
 (defn get-app-group-hierarchy
   "Gets the app group hierarchy rooted at the node with the given identifier."
@@ -33,3 +34,21 @@
                   [:workspace.id :workspace_id]
                   :users.username)
           (join users)))
+
+(defn create-app-group
+  "Creates a database entry for a template_group, with an UUID and the given
+   workspace_id and name, and returns a map of the group with its new hid."
+  [workspace_id name]
+  (insert template_group (values [{:id (-> (UUID/randomUUID) (.toString))
+                                   :workspace_id workspace_id
+                                   :name name}])))
+
+(defn add-subgroup
+  "Adds a subgroup to a parent group, which should be listed at the given index
+   position of the parent's subgroups."
+  [parent_group_id index subgroup_id]
+  (insert :template_group_group
+          (values {:parent_group_id parent_group_id
+                   :subgroup_id subgroup_id
+                   :hid index})))
+
