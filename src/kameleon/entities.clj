@@ -10,7 +10,7 @@
          value_type validator rule rule_type rule_subtype analysis_group_listing
          analysis_listing deployed_component_listing dataelementpreservation
          importedworkflow notification_set notification ratings collaborators
-         genome_reference created_by last_modified_by data_source)
+         genome_reference created_by last_modified_by data_source tool_types)
 
 ;; Users who have logged into the DE.  Multiple entities are associated with
 ;; the same table in order to allow us to have multiple relationships between
@@ -323,3 +323,8 @@
 (defentity data_source
   (table :data_source)
   (entity-fields :uuid :name :label :description))
+
+;; Tool types.
+(defentity tool_types
+  (table :tool-types)
+  (entity-fields :name :description))
