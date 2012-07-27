@@ -180,7 +180,10 @@
                  :ordering :omit_if_blank)
   (belongs-to data_object {:fk :dataobject_id})
   (belongs-to property_type {:fk :property_type})
-  (belongs-to validator {:fk :validator}))
+  (belongs-to validator {:fk :validator})
+  (many-to-many tool_types :tool_type_property_type
+                {:lfk :property_type_id
+                 :rfk :tool_type_id}))
 
 ;; The type of a single property.
 (defentity property_type
@@ -327,5 +330,8 @@
 
 ;; Tool types.
 (defentity tool_types
-  (table :tool-types)
-  (entity-fields :name :description))
+  (table :tool_types)
+  (entity-fields :name :description)
+  (many-to-many property_type :tool_type_property_type
+                {:lfk :tool_type_id
+                 :rfk :property_type_id}))
