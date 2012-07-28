@@ -48,8 +48,12 @@
    otherwise the original select_query is returned."
   [select_query sortField sortDir]
   (if (not (nil? sortField))
-    (-> select_query
-      (order sortField sortDir))
+    ;; Ensure sortDir is either :ASC or :DESC
+    (let [sortDir (if (= sortDir :DESC)
+                    sortDir
+                    :ASC)]
+      (-> select_query
+        (order sortField sortDir)))
     select_query))
 
 (defn get-collaborators
