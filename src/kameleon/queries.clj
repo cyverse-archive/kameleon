@@ -138,3 +138,12 @@
   (update workspace
           (set-fields {:root_analysis_group_id root_app_group_id})
           (where {:id workspace_id})))
+
+(defn property-types-for-tool-type
+  "Lists the valid property types for the tool type with the given identifier."
+  [tool-type-id]
+  (select property_type
+          (join :tool_type_property_type
+                {:tool_type_property_type.property_type_id
+                 :property_type.hid})
+          (where {:tool_type_property_type.tool_type_id tool-type-id})))

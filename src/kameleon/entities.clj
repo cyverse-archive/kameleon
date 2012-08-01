@@ -71,8 +71,9 @@
 ;; Information about a deployed tool.
 (defentity deployed_components
   (pk :hid)
-  (entity-fields :id :name :location :type :description :version :attribution)
+  (entity-fields :id :name :location :description :version :attribution)
   (belongs-to integration_data)
+  (belongs-to tool_types {:fk :tool_type_id})
   (has-many deployed_component_data_files {:fk :deployed_component_id}))
 
 ;; Test data files for use with deployed components.
