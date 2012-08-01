@@ -35,6 +35,13 @@
                   :users.username)
           (join users)))
 
+(defn get-app-group
+  "Retrieves an App Group by its ID."
+  [app_group_id]
+  (first (select analysis_group_listing
+                 (fields :id :name :description :is_public)
+                 (where {:id app_group_id}))))
+
 (defn create-app-group
   "Creates a database entry for a template_group, with an UUID and the given
    workspace_id and name, and returns a map of the group with its new hid."
