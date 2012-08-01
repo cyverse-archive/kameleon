@@ -72,7 +72,8 @@
     (join :inner :template_group_template
           (= :template_group_template.template_id :analysis_listing.hid))
     (where {:template_group_template.template_group_id
-            [in (get-all-group-ids-subselect app_group_id)]})))
+            [in (get-all-group-ids-subselect app_group_id)]
+            :deleted false})))
 
 (defn count-apps-in-group-for-user
   "Counts all of the apps in an app group and all of its descendents."
