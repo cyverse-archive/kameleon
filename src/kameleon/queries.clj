@@ -141,9 +141,11 @@
 
 (defn property-types-for-tool-type
   "Lists the valid property types for the tool type with the given identifier."
-  [tool-type-id]
-  (select property_type
-          (join :tool_type_property_type
-                {:tool_type_property_type.property_type_id
-                 :property_type.hid})
-          (where {:tool_type_property_type.tool_type_id tool-type-id})))
+  ([tool-type-id]
+     (property-types-for-tool-type (select* property_type) tool-type-id))
+  ([base-query tool-type-id]
+     (select base-query
+             (join :tool_type_property_type
+                   {:tool_type_property_type.property_type_id
+                    :property_type.hid})
+             (where {:tool_type_property_type.tool_type_id tool-type-id}))))
