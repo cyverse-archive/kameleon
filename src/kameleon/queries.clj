@@ -149,3 +149,33 @@
                    {:tool_type_property_type.property_type_id
                     :property_type.hid})
              (where {:tool_type_property_type.tool_type_id tool-type-id}))))
+
+(defn get-tool-type-by-name
+  "Searches for the tool type with the given name."
+  [tool-type-name]
+  (first (select tool_types
+                 (where {:name tool-type-name}))))
+
+(defn get-tool-type-by-component-id
+  "Searches for the tool type associated with the given deployed component."
+  [component-id]
+  (first (select deployed_components
+                 (fields :tool_types.id :tool_types.name :tool_types.label
+                         :tool_types.description)
+                 (join tool_types)
+                 (where {:deployed_components.id component-id}))))
+
+(defn get-or-create-user
+  "Gets a user from the database, creating the user if necessary."
+  [username]
+  (if-let [user (first (select users (where {:username username})))]
+    user
+    (insert users (values {:username username}))))
+
+(defn get-or-create-workspace-for-user
+  "Gets a workspace from the database, creating it if necessary."
+  [username]
+  (let [user-id (:id (get-or-create-user username))]
+    (if-let [workspace (first (select workspace (where {:user_id user-id})))]
+      workspace
+      (insert workspace (values {:user_id user-id})))))

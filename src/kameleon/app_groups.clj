@@ -5,6 +5,11 @@
         [slingshot.slingshot :only [throw+]])
   (:import [java.util UUID]))
 
+(defn- uuid
+  "Generates a random UUID."
+  []
+  (-> (UUID/randomUUID) (.toString)))
+
 (defn get-app-group-hierarchy
   "Gets the app group hierarchy rooted at the node with the given identifier."
   [root-id]
@@ -45,10 +50,13 @@
 (defn create-app-group
   "Creates a database entry for a template_group, with an UUID and the given
    workspace_id and name, and returns a map of the group with its new hid."
-  [workspace_id name]
-  (insert template_group (values [{:id (-> (UUID/randomUUID) (.toString))
-                                   :workspace_id workspace_id
-                                   :name name}])))
+  ([workspace-id m]
+     (create-app-group workspace-id (:name m) m))
+  ([workspace-id name {:keys [id description] :or {:id (uuid)}}]
+     (insert template_group (values {:id           id
+                                     :workspace_id workspace-id
+                                     :description  description
+                                     :name         name}))))
 
 (defn add-subgroup
   "Adds a subgroup to a parent group, which should be listed at the given index
@@ -59,3 +67,46 @@
                    :subgroup_id subgroup_id
                    :hid index})))
 
+(defn is-subgroup?
+  "Determines if one group is a subgroup of another."
+  [parent-group-id subgroup-id]
+  (> (count (select :template_group_group
+                    (where {:parent_group_id parent-group-id
+                            :subgroup_id     subgroup-id})))
+     0))
+
+(defn set-root-app-group
+  "Sets the root app group for a workspace."
+  [workspace-id root-group-id]
+  (update workspace
+          (set-fields {:root_analysis_group_id root-group-id})
+          (where      {:id workspace-id})))
+
+(defn decategorize-app
+  "Removes an app from all categories in the database."
+  [{{app-id :id} :analysis}]
+  (delete :template_group_template
+          (where {:template_id (subselect transformation_activity
+                                          (fields :hid)
+                                          (where {:id app-id}))})))
+
+(defn get-app-by-id
+  "Searches for an existing app by id."
+  [id]
+  (first (select transformation_activity
+                 (where {:id id}))))
+
+(defn app-in-group?
+  "Determines whether or not an app is in an app group."
+  [group-hid app-hid]
+  (not (empty? (first (select :template_group_template
+                              (where {:template_group_id group-hid
+                                      :template_id       app-hid}))))))
+
+(defn add-app-to-group
+  "Adds an app to an app group."
+  [group-hid app-hid]
+  (when-not (app-in-group? group-hid app-hid)
+    (insert :template_group_template
+            (values {:template_group_id group-hid
+                     :template_id       app-hid}))))
