@@ -179,3 +179,8 @@
     (if-let [workspace (first (select workspace (where {:user_id user-id})))]
       workspace
       (insert workspace (values {:user_id user-id})))))
+
+(defn get-public-user-id
+  "Gets the user ID for the public user."
+  []
+  (:id (get-or-create-user "<public>")))
