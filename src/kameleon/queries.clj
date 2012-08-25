@@ -82,6 +82,12 @@
   [usernames]
   (map get-user-id usernames))
 
+(defn get-username
+  "Gets the username for the user with the given identifier."
+  [user-id]
+  (when-not (nil? user-id)
+    (:username (first (select users (where {:id user-id}))))))
+
 (defn- add-collaboration
   "Adds a collaboration to the database if the collaboration doesn't exist
    already."
