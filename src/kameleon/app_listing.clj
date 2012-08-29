@@ -4,7 +4,8 @@
         [kameleon.entities]
         [kameleon.queries]
         [kameleon.app-groups :only [get-visible-root-app-group-ids]])
-  (:require [clojure.tools.logging :as log]))
+  (:require [clojure.tools.logging :as log]
+            [clojure.string :as str]))
 
 (defn- get-group-hid-subselect
   "Gets a subselect that fetches the hid for the given template_group ID."
@@ -167,7 +168,7 @@
   [workspace_id]
   (let [root_app_ids (get-visible-root-app-group-ids workspace_id)
         select-ids-fn #(str "SELECT * FROM APP_GROUP_HIERARCHY_IDS(" % ")")
-        union_select_ids (clojure.string/join
+        union_select_ids (str/join
                            " UNION "
                            (map select-ids-fn root_app_ids))]
     (raw (str "(" union_select_ids ")"))))
@@ -177,7 +178,14 @@
    that contain search_term in their name or description, in all public groups
    and groups under the given workspace_id."
   [base_search_query search_term workspace_id]
-  (let [search_term (str "%" search_term "%")
+  (let [search_term (str/replace
+                      search_term
+                      #"[%_*?]"
+                      {"%" "\\\\%",
+                       "_" "\\\\_",
+                       "*" "%",
+                       "?" "_"})
+        search_term (str "%" search_term "%")
         sql-lower #(sqlfn lower %)]
     (->
       base_search_query
