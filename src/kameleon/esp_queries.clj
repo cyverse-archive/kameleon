@@ -3,7 +3,8 @@
         kameleon.utils
         kameleon.esp-entities
         korma.core
-        korma.db))
+        korma.db)
+  (:require [clojure.data.json :as json]))
 
 (defn merge-field
   "Utility function that looks in lookup-map for lookup-key and merges that
@@ -70,7 +71,8 @@
   (-> es-map
       (xform-result :source_uuid #(str %1))
       (xform-result :date_modified #(str %1))
-      (xform-result :date_created #(str %1))))
+      (xform-result :date_created #(str %1))
+      (xform-result :source_data #(json/read-json %1))))
 
 (defn clean-es-map
   "Removes the :id field from the es-map."
@@ -153,7 +155,8 @@
       (xform-result :event_uuid #(str %1))
       (xform-result :source_uuid #(str %1))
       (xform-result :date_modified #(str %1))
-      (xform-result :date_created #(str %1))))
+      (xform-result :date_created #(str %1))
+      (xform-result :event_data #(json/read-json %1))))
 
 (defn clean-event-map
   "Removes the :event_sources_id and :id fields from ev-map."
