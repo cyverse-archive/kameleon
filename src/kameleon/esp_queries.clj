@@ -1,8 +1,9 @@
 (ns kameleon.esp-queries
   (:use kameleon.core
-        kameleon.esp-entities
         kameleon.utils
-        korma.core))
+        kameleon.esp-entities
+        korma.core
+        korma.db))
 
 (defn merge-field
   "Utility function that looks in lookup-map for lookup-key and merges that
@@ -62,26 +63,33 @@
     query
     (apply (partial fields query) seq-fields)))
 
+(defn xform-es-map
+  "Cleans up a result map for an event_source query by turning the :source_uuid,
+   :date_modified, and :date_created fields into strings."
+  [es-map]
+  (-> es-map
+      (xform-result :source_uuid #(str %1))
+      (xform-result :date_modified #(str %1))
+      (xform-result :date_created #(str %1))))
+
+(defn clean-es-map
+  "Removes the :id field from the es-map."
+  [es-map]
+  (-> es-map
+      (dissoc :id)))
+
 (defn insert-event-source
   "Inserts a new event source into the database. src-uuid is the uuid for the
    new event source. tag is the string tag used to look up one or more event
    sources. data is a string representing the event source."
   [src-uuid tag data]
-  (insert event-sources
-          (values {:tag tag
-                   :source_data data
-                   :source_uuid (str->pg-uuid src-uuid)})))
-
-(defn xform-es-map
-  "Cleans up a result map for an event_source query by (dissoc)ing the :id
-   field and turning the :source_uuid, :date_modified, and :date_created fields
-   into strings."
-  [es-map]
-  (-> es-map
-      (dissoc :id)
-      (xform-result :source_uuid #(str %1))
-      (xform-result :date_modified #(str %1))
-      (xform-result :date_created #(str %1))))
+  (-> (transaction
+       (insert event-sources
+               (values {:tag tag
+                        :source_data data
+                        :source_uuid (str->pg-uuid src-uuid)})))
+      xform-es-map
+      clean-es-map))
 
 (defn query-event-sources
   "Allows you to query the event_sources table in the database. Here are some
@@ -103,16 +111,20 @@
    Note: This will never return the :id field. If you need the :id field, use
    Korma's normal (select)."
   [es-fields & {:as opt-fields}]
-  (map xform-es-map (-> (select* event-sources)
-                         (query-fields es-fields)
-                         (event-source-where (convert-uuids opt-fields))
-                         (select))))
+  (map
+   #(-> %1 xform-es-map clean-es-map)
+   (-> (select* event-sources)
+       (query-fields es-fields)
+       (event-source-where (convert-uuids opt-fields))
+       (select))))
 
 (defn event-source-id
   "Helper method that queries the database for the id associated with the
    given event source uuid."
   [src-uuid]
-  (-> (query-event-sources [:id] :source_uuid src-uuid)
+  (-> (select event-sources
+              (fields :id)
+              (where {:source_uuid [= (str->pg-uuid src-uuid)]}))
       first
       :id))
 
@@ -130,29 +142,38 @@
                (merge-field opt-fields :event_data)
                (merge-field opt-fields :event_type)))))
 
-(defn insert-event
-  "Inserts an event into the database. ev-uuid is a string containing the uuid
-   to associate with the event. scr-uuid is a string containing the uuid of the
-   event_source associate with this event. event_data is a string containing
-   arbitrary event data."
-  [ev-uuid src-uuid ev-type data]
-  (insert events (values {:event_uuid (str->pg-uuid ev-uuid)
-                          :event_sources_id (event-source-id src-uuid)
-                          :event_data data
-                          :event_type ev-type})))
-
 (defn xform-event-map
   "Takes in a result map for an event query and cleans it up. It does this by
    (dissoc)ing any fields that are database specific (namely :event_sources_id
    and :id) and by turning the :event_uuid, :source_uuid, :date_created, and
    :date_modified fields into strings."
   [ev-map]
+  (println ev-map)
   (-> ev-map
-      (dissoc :event_sources_id :id)
       (xform-result :event_uuid #(str %1))
       (xform-result :source_uuid #(str %1))
       (xform-result :date_modified #(str %1))
       (xform-result :date_created #(str %1))))
+
+(defn clean-event-map
+  "Removes the :event_sources_id and :id fields from ev-map."
+  [ev-map]
+  (-> ev-map
+      (dissoc :event_sources_id :id)))
+
+(defn insert-event
+  "Inserts an event into the database. ev-uuid is a string containing the uuid
+   to associate with the event. scr-uuid is a string containing the uuid of the
+   event_source associate with this event. event_data is a string containing
+   arbitrary event data."
+  [ev-uuid src-uuid ev-type data]
+  (-> (transaction
+       (insert events (values {:event_uuid (str->pg-uuid ev-uuid)
+                               :event_sources_id (event-source-id src-uuid)
+                               :event_data data
+                               :event_type ev-type})))
+      xform-event-map
+      clean-event-map))
 
 (defn xform-ef
   "Takes in a field name that normally gets passed to the (fields) part of a
@@ -196,8 +217,10 @@
   [event-fields & {:as opt-fields}]
   (into
    []
-   (map xform-event-map (-> (select* events)
-                            (with event-sources (fields :source_uuid))
-                            (query-fields (xform-event-fields event-fields))
-                            (events-where (convert-uuids opt-fields))
-                            (select)))))
+   (map
+    #(-> %1 xform-event-map clean-event-map)
+    (-> (select* events)
+        (with event-sources (fields :source_uuid))
+        (query-fields (xform-event-fields event-fields))
+        (events-where (convert-uuids opt-fields))
+        (select)))))
