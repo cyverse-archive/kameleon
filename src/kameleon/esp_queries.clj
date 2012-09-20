@@ -270,3 +270,18 @@
         (query-fields part-fields)
         (parts-where opt-fields)
         (select)))))
+
+(defn xform-update-map
+  [up-map]
+  (-> up-map (xform-result :last_run_time str->timestamp)))
+
+(defn update-partitioners
+  [update-fields & {:as opt-fields}]
+  (into
+   []
+   (map
+    #(-> %1 xform-part-map clean-part-map)
+    (flatten [(-> (update* partitioners)
+                  (set-fields (xform-update-map update-fields))
+                  (parts-where opt-fields)
+                  (select))]))))
