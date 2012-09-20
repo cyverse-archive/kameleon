@@ -227,3 +227,46 @@
         (query-fields (xform-event-fields event-fields))
         (events-where (convert-uuids opt-fields))
         (select)))))
+
+(defn clean-part-map
+  [part-map]
+  (-> part-map (dissoc :id)))
+
+(defn xform-part-map
+  [part-map]
+  (-> part-map
+      (xform-result :date_modified #(str %1))
+      (xform-result :date_created #(str %1))
+      (xform-result :last_run_time #(str %1))))
+
+(defn parts-where
+  "Generates the where clause for a Korma query on the events table. Takes
+   in the query object and a map containing the optional fields to restrict the
+   query on. Similar to the (event-sources-where) function."
+  [query opt-fields]
+  (if (zero? (count (keys opt-fields)))
+    query
+    (where query
+           (-> {}
+               (merge-field opt-fields :last_run_time)
+               (merge-field opt-fields :part_key)))))
+
+(defn insert-partitioner
+  [part-key last-run-time]
+  (->
+   (insert partitioners
+           (values {:part_key part-key
+                    :last_run_time (str->timestamp last-run-time)}))
+   xform-part-map
+   clean-part-map))
+
+(defn query-partitioners
+  [part-fields & {:as opt-fields}]
+  (into
+   []
+   (map
+    #(-> %1 xform-part-map clean-part-map)
+    (-> (select* partitioners)
+        (query-fields part-fields)
+        (parts-where opt-fields)
+        (select)))))
