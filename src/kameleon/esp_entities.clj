@@ -14,3 +14,6 @@
                  [:event_sources_id :source-id]
                  [:event_data :data])
   (belongs-to event-sources))
+
+(defentity partitioners
+  (entity-fields :part_key :last_run_time))
