@@ -104,6 +104,7 @@
                                 :average_rating
                                 :is_public
                                 :step_count
+                                :component_count
                                 :deleted
                                 :disabled
                                 :overall_job_type)
