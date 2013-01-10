@@ -5,4 +5,4 @@
                  [postgresql "9.0-801.jdbc4"]
                  [slingshot "0.10.2"]]
   :plugins [[lein-marginalia "0.7.0"]]
-  :manifest {"db-version" "1.6.0:20121213.01"})
+  :manifest {"db-version" "1.8.0:20130110.01"})
