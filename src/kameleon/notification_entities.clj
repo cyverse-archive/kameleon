@@ -1,6 +1,5 @@
 (ns kameleon.notification-entities
-  (:use [kameleon.core]
-        [korma.core]))
+  (:use [korma.core]))
 
 (declare notifications analysis_execution_statuses email_notification_messages)
 

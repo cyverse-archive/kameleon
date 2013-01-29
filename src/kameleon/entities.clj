@@ -1,6 +1,5 @@
 (ns kameleon.entities
-  (:use [kameleon.core]
-        [korma.core]))
+  (:use [korma.core]))
 
 (declare users collaborator workspace template_group transformation_activity
          transformation_activity_references integration_data deployed_components

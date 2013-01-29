@@ -1,6 +1,5 @@
 (ns kameleon.app-listing
   (:use [korma.core]
-        [kameleon.core]
         [kameleon.entities]
         [kameleon.queries]
         [kameleon.app-groups :only [get-visible-root-app-group-ids]])

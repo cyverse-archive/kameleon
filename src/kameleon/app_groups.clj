@@ -1,6 +1,5 @@
 (ns kameleon.app-groups
-  (:use [kameleon.core]
-        [kameleon.entities]
+  (:use [kameleon.entities]
         [korma.core]
         [slingshot.slingshot :only [throw+]])
   (:import [java.util UUID]))
