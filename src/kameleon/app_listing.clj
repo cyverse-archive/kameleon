@@ -86,8 +86,8 @@
         workspace_root_group_id (:root_analysis_group_id workspace)
         row_offset (try (Integer/parseInt (:offset query_opts)) (catch Exception e 0))
         row_limit (try (Integer/parseInt (:limit query_opts)) (catch Exception e -1))
-        sortField (keyword (:sortField query_opts))
-        sortDir (keyword (:sortDir query_opts))
+        sort_field (keyword (or (:sortField query_opts) (:sortfield query_opts)))
+        sort_dir (keyword (or (:sortDir query_opts) (:sortdir query_opts)))
 
         ;; Bind the final query
         listing_query (->
@@ -144,7 +144,7 @@
       listing_query
       (add-query-limit row_limit)
       (add-query-offset row_offset)
-      (add-query-sorting sortField sortDir))))
+      (add-query-sorting sort_field sort_dir))))
 
 (defn get-apps-in-group-for-user
   "Lists all of the apps in an app group and all of its descendents, using the

@@ -44,16 +44,15 @@
     select_query))
 
 (defn add-query-sorting
-  "Returns select_query with an ORDER BY clause added if sortField is not nil;
+  "Returns select_query with an ORDER BY clause added if sort-field is not nil;
    otherwise the original select_query is returned."
-  [select_query sortField sortDir]
-  (if (not (nil? sortField))
-    ;; Ensure sortDir is either :ASC or :DESC
-    (let [sortDir (if (= sortDir :DESC)
-                    sortDir
-                    :ASC)]
+  [select_query sort-field sort-dir]
+  (if (not (nil? sort-field))
+    (let [sort-dir (if (= sort-dir :DESC)
+                     sort-dir
+                     :ASC)]
       (-> select_query
-        (order sortField sortDir)))
+          (order sort-field sort-dir)))
     select_query))
 
 (defn get-collaborators
