@@ -362,16 +362,23 @@
 (defentity tool_requests
   (table :tool_requests)
   (entity-fields
-   :phone :tool_name :description :source_url :doc_url :version :attribution :multithreaded
+   :uuid :phone :tool_name :description :source_url :doc_url :version :attribution :multithreaded
    :test_data_path :instructions :additional_info :additional_data_file)
   (belongs-to requestor {:fk :requestor_id})
   (belongs-to tool_architectures {:fk :tool_architecture_id})
   (belongs-to deployed_components {:fk :deployed_component_id})
   (has-many tool_request_statuses {:fk :tool_request_id}))
 
+;; The user who updated a tool request.
+(defentity updater
+  (table :users :updater)
+  (entity-fields :username)
+  (has-many tool_request_statuses {:fk :updater_id}))
+
 ;; Tool request status changes.
 (defentity tool_request_statuses
   (table :tool_request_statuses)
   (entity-fields :date-assigned :comments)
   (belongs-to tool_requests {:fk :tool_request_id})
-  (belongs-to tool_request_status_codes {:fk :tool_request_status_code_id}))
+  (belongs-to tool_request_status_codes {:fk :tool_request_status_code_id})
+  (belongs-to updater {:fk :updater_id}))
