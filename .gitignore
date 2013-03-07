@@ -7,3 +7,5 @@ pom.xml
 .lein-failures
 *~
 *.swp
+.dir-locals.el
+.nrepl-hist.eld
