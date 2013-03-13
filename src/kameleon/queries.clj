@@ -198,7 +198,7 @@
            (fields :tr.uuid
                    [:requestor.username :submitted_by]
                    :tr.phone
-                   :tr.tool_name
+                   [:tr.tool_name :name]
                    :tr.description
                    :tr.source_url
                    [:tr.doc_url :documentation_url]
@@ -238,7 +238,7 @@
   [user]
   (subselect [:tool_requests :tr]
              (fields [:tr.uuid :uuid]
-                     [:tr.tool_name :tool_name]
+                     [:tr.tool_name :name]
                      [:tr.version :version]
                      [:trsc.name :status]
                      [:trs.date_assigned :status_date]
@@ -258,7 +258,7 @@
            sort-field :sort-field
            sort-order :sort-order}]
   (select [(list-tool-requests-subselect user) :req]
-          (fields :uuid :tool_name :version
+          (fields :uuid [:tool_name :name] :version
                   [(sqlfn :first :status_date) :date_submitted]
                   [(sqlfn :last :status) :status]
                   [(sqlfn :last :status_date) :date_updated]
