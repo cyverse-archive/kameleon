@@ -258,12 +258,12 @@
            sort-field :sort-field
            sort-order :sort-order}]
   (select [(list-tool-requests-subselect user) :req]
-          (fields :uuid [:tool_name :name] :version
+          (fields :uuid :name :version
                   [(sqlfn :first :status_date) :date_submitted]
                   [(sqlfn :last :status) :status]
                   [(sqlfn :last :status_date) :date_updated]
                   [(sqlfn :last :updated_by) :updated_by])
-          (group :uuid :tool_name :version)
+          (group :uuid :name :version)
           (order (or sort-field :date_submitted) (or sort-order :ASC))
           (limit row-limit)
           (offset row-offset)))
