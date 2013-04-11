@@ -190,6 +190,21 @@
   []
   (:id (get-or-create-user "<public>")))
 
+(defn get-templates-for-app
+  "Retrieves the list of templates associated with an app."
+  [app-hid]
+  (select [:transformation_activity :a]
+          (fields :t.hid :t.id :t.name :t.description :t.label :t.type :t.component_id)
+          (join [:transformation_task_steps :tts]
+                {:a.hid :tts.transformation_task_id})
+          (join [:transformation_steps :ts]
+                {:tts.transformation_step_id :ts.id})
+          (join [:transformations :tx]
+                {:ts.transformation_id :tx.id})
+          (join [:template :t]
+                {:tx.template_id :t.id})
+          (where {:a.hid app-hid})))
+
 (defn get-tool-request-details
   "Obtains detailed information about a tool request."
   [uuid]
