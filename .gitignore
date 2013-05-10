@@ -10,3 +10,6 @@ pom.xml
 *.swp
 .dir-locals.el
 .nrepl-hist.eld
+/.classpath
+/.project
+/bin
