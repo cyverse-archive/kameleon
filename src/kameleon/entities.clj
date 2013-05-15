@@ -1,8 +1,7 @@
 (ns kameleon.entities
-  (:use [kameleon.core]
-        [korma.core]))
+  (:use [korma.core]))
 
-(declare users collaborator workspace template_group transformation_activity
+(declare users collaborator requestor workspace template_group transformation_activity
          transformation_activity_references integration_data deployed_components
          deployed_component_data_files transformation_steps transformations
          output_mapping input_mapping template inputs outputs info_type
@@ -10,7 +9,9 @@
          value_type validator rule rule_type rule_subtype analysis_group_listing
          analysis_listing deployed_component_listing dataelementpreservation
          importedworkflow notification_set notification ratings collaborators
-         genome_reference created_by last_modified_by data_source tool_types)
+         genome_reference created_by last_modified_by data_source tool_types
+         tool_request_status_codes tool_architectures tool_requests
+         tool_request_statuses)
 
 ;; Users who have logged into the DE.  Multiple entities are associated with
 ;; the same table in order to allow us to have multiple relationships between
@@ -74,7 +75,8 @@
   (entity-fields :id :name :location :description :version :attribution)
   (belongs-to integration_data)
   (belongs-to tool_types {:fk :tool_type_id})
-  (has-many deployed_component_data_files {:fk :deployed_component_id}))
+  (has-many deployed_component_data_files {:fk :deployed_component_id})
+  (has-many tool_requests {:fk :deployed_component_id}))
 
 ;; Test data files for use with deployed components.
 (defentity deployed_component_data_files
@@ -337,3 +339,46 @@
   (many-to-many property_type :tool_type_property_type
                 {:lfk :tool_type_id
                  :rfk :property_type_id}))
+
+;; Tool request status codes.
+(defentity tool_request_status_codes
+  (table :tool_request_status_codes)
+  (entity-fields :name :description)
+  (has-many tool_request_statuses {:fk :tool_request_status_code_id}))
+
+;; Tool architectures.
+(defentity tool_architectures
+  (table :tool_architectures)
+  (entity-fields :name :description)
+  (has-many tool_requests {:fk :tool_architecture_id}))
+
+;; The user who submitted a tool request.
+(defentity requestor
+  (table :users :requestor)
+  (entity-fields :username)
+  (has-many tool_requests {:fk :requestor_id}))
+
+;; Tool requests.
+(defentity tool_requests
+  (table :tool_requests)
+  (entity-fields
+   :uuid :phone :tool_name :description :source_url :doc_url :version :attribution :multithreaded
+   :test_data_path :instructions :additional_info :additional_data_file)
+  (belongs-to requestor {:fk :requestor_id})
+  (belongs-to tool_architectures {:fk :tool_architecture_id})
+  (belongs-to deployed_components {:fk :deployed_component_id})
+  (has-many tool_request_statuses {:fk :tool_request_id}))
+
+;; The user who updated a tool request.
+(defentity updater
+  (table :users :updater)
+  (entity-fields :username)
+  (has-many tool_request_statuses {:fk :updater_id}))
+
+;; Tool request status changes.
+(defentity tool_request_statuses
+  (table :tool_request_statuses)
+  (entity-fields :date-assigned :comments)
+  (belongs-to tool_requests {:fk :tool_request_id})
+  (belongs-to tool_request_status_codes {:fk :tool_request_status_code_id})
+  (belongs-to updater {:fk :updater_id}))
