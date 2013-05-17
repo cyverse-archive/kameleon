@@ -39,6 +39,6 @@
 
 ;; Acknowledgments of system notifications.
 (defentity system_notification_acknowledgments
-  (entity-fields :deleted :date_acknowledged)
+  (entity-fields :state :date_acknowledged)
   (belongs-to users {:fk :user_id})
   (belongs-to system_notifications {:fk :system_notification_id}))
