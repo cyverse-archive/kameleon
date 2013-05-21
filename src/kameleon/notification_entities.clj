@@ -8,7 +8,7 @@
 (defentity users
   (entity-fields :username)
   (has-many notifications {:fk :user_id})
-  (has-many system_notifications {:fk :user_id}))
+  (has-many system_notification_acknowledgments {:fk :user_id}))
 
 ;; The notifications themselves.
 (defentity notifications
