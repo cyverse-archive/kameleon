@@ -8,7 +8,7 @@
 (defentity users
   (entity-fields :username)
   (has-many notifications {:fk :user_id})
-  (has-many system_notifications {:fk :user_id}))
+  (has-many system_notification_acknowledgments {:fk :user_id}))
 
 ;; The notifications themselves.
 (defentity notifications
@@ -39,6 +39,6 @@
 
 ;; Acknowledgments of system notifications.
 (defentity system_notification_acknowledgments
-  (entity-fields :deleted :date_acknowledged)
+  (entity-fields :state :date_acknowledged)
   (belongs-to users {:fk :user_id})
   (belongs-to system_notifications {:fk :system_notification_id}))
