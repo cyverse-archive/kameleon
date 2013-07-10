@@ -47,7 +47,7 @@
                       fav_group_id_subselect})))))
 
 (defn- add-app-group-where-clause
-  "Adds a where clause to an analysis_listing query to restrict app results to
+  "Adds a where clause to an analysis listing query to restrict app results to
    an app group and all of its descendents."
   [base_listing_query app_group_id]
   (where base_listing_query
@@ -55,12 +55,12 @@
           [in (get-all-group-ids-subselect app_group_id)]}))
 
 (defn- add-public-apps-by-user-where-clause
-  "Adds a where clause that is capable of finding apps integrated by the user with the given
-   first and last names to a query."
-  [query first-name last-name]
+  "Adds a where clause to an analysis listing query to restrict app results to
+   the set of public apps integrated by a user."
+  [query email]
   (where query
-         {:integrator_name (str first-name " " last-name)
-          :is_public       true}))
+         {:integrator_email email
+          :is_public        true}))
 
 (defn- get-app-count-base-query
   "Returns a base query for counting the total number of apps in the
@@ -80,13 +80,13 @@
       (-> (get-app-count-base-query)
           (add-app-group-where-clause app-group-id)
           (select))))
-  ([app-group-id first-name last-name]
+  ([app-group-id email]
      ((comp :total first)
       (-> (get-app-count-base-query)
           (where (or {:template_group_template.template_group_id
                       [in (get-all-group-ids-subselect app-group-id)]}
-                     {:integrator_name (str first-name " " last-name)
-                      :is_public       true}))
+                     {:integrator_email email
+                      :is_public        true}))
           (select)))))
 
 (defn- get-app-listing-base-query
@@ -167,12 +167,12 @@
      (-> (get-app-listing-base-query workspace faves-index query-opts)
          (add-app-group-where-clause app-group-id)
          (select)))
-  ([app-group-id workspace faves-index query-opts first-name last-name]
+  ([app-group-id workspace faves-index query-opts email]
      (-> (get-app-listing-base-query workspace faves-index query-opts)
          (where (or {:template_group_template.template_group_id
                       [in (get-all-group-ids-subselect app-group-id)]}
-                     {:integrator_name (str first-name " " last-name)
-                      :is_public       true}))
+                     {:integrator_email email
+                      :is_public        true}))
          (select))))
 
 (defn- get-public-group-ids-subselect
@@ -240,17 +240,17 @@
     (select search_query)))
 
 (defn count-public-apps-by-user
-  "Counts the number of apps integrated by the user with the given first and last names."
-  [first-name last-name]
+  "Counts the number of apps integrated by a user."
+  [email]
   ((comp :count first)
    (-> (select* analysis_listing)
        (aggregate (count :*) :count)
-       (add-public-apps-by-user-where-clause first-name last-name)
+       (add-public-apps-by-user-where-clause email)
        (select))))
 
 (defn list-public-apps-by-user
   "Lists the apps integrated by the user with the given"
-  [workspace favorites-group-index first-name last-name query-opts]
+  [workspace favorites-group-index email query-opts]
   (-> (get-app-listing-base-query workspace favorites-group-index query-opts)
-      (add-public-apps-by-user-where-clause first-name last-name)
+      (add-public-apps-by-user-where-clause email)
       (select)))
