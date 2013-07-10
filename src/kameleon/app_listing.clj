@@ -54,27 +54,40 @@
          {:template_group_template.template_group_id
           [in (get-all-group-ids-subselect app_group_id)]}))
 
+(defn- add-public-apps-by-user-where-clause
+  "Adds a where clause that is capable of finding apps integrated by the user with the given
+   first and last names to a query."
+  [query first-name last-name]
+  (where query
+         {:integrator_name (str first-name " " last-name)
+          :is_public       true}))
+
 (defn- get-app-count-base-query
   "Returns a base query for counting the total number of apps in the
    analysis_listing table."
   []
   (->
     (select* analysis_listing)
+    (aggregate (count :*) :total)
     (join :template_group_template
           (= :template_group_template.template_id :analysis_listing.hid))
     (where {:deleted false})))
 
 (defn count-apps-in-group-for-user
   "Counts all of the apps in an app group and all of its descendents."
-  [app_group_id]
-  (let [count_query (add-app-group-where-clause
-                      (get-app-count-base-query)
-                      app_group_id)
-        select-count #(select (aggregate % (count :*) :total))]
-    ;; Excecute the query and return the results
-    (log/debug "count-apps-in-group-for-user::count_query:"
-               (sql-only (select-count count_query)))
-    (:total (first (select-count count_query)))))
+  ([app-group-id]
+     ((comp :total first)
+      (-> (get-app-count-base-query)
+          (add-app-group-where-clause app-group-id)
+          (select))))
+  ([app-group-id first-name last-name]
+     ((comp :total first)
+      (-> (get-app-count-base-query)
+          (where (or {:template_group_template.template_group_id
+                      [in (get-all-group-ids-subselect app-group-id)]}
+                     {:integrator_name (str first-name " " last-name)
+                      :is_public       true}))
+          (select)))))
 
 (defn- get-app-listing-base-query
   "Gets an analysis_listing select query, setting any query limits and sorting
@@ -150,16 +163,17 @@
   "Lists all of the apps in an app group and all of its descendents, using the
    given workspace (as returned by fetch-workspace-by-user-id) to mark
    whether each app is a favorite and to include the user's rating in each app."
-  [app_group_id workspace favorites_group_index query_opts]
-  (let [listing_query (get-app-listing-base-query
-                        workspace
-                        favorites_group_index
-                        query_opts)
-        listing_query (add-app-group-where-clause listing_query app_group_id)]
-    ;; Excecute the query and return the results
-    (log/debug "get-apps-in-group-for-user::listing_query:"
-               (sql-only (select listing_query)))
-    (select listing_query)))
+  ([app-group-id workspace faves-index query-opts]
+     (-> (get-app-listing-base-query workspace faves-index query-opts)
+         (add-app-group-where-clause app-group-id)
+         (select)))
+  ([app-group-id workspace faves-index query-opts first-name last-name]
+     (-> (get-app-listing-base-query workspace faves-index query-opts)
+         (where (or {:template_group_template.template_group_id
+                      [in (get-all-group-ids-subselect app-group-id)]}
+                     {:integrator_name (str first-name " " last-name)
+                      :is_public       true}))
+         (select))))
 
 (defn- get-public-group-ids-subselect
   "Gets a subselect that fetches the workspace template_group ID, public root
@@ -203,12 +217,8 @@
   (let [count_query (add-search-where-clauses
                       (get-app-count-base-query)
                       search_term
-                      workspace_id)
-        select-count #(select (aggregate % (count :*) :total))]
-    ;; Excecute the query and return the results
-    (log/debug "count-search-apps-for-user::count_query:"
-               (sql-only (select-count count_query)))
-    (:total (first (select-count count_query)))))
+                      workspace_id)]
+    (:total (first (select count_query)))))
 
 (defn search-apps-for-user
   "Searches Apps that contain search_term in their name or description, in all
@@ -228,14 +238,6 @@
     (log/debug "search-apps-for-user::search_query:"
                (sql-only (select search_query)))
     (select search_query)))
-
-(defn- add-public-apps-by-user-where-clause
-  "Adds a where clause that is capable of finding apps integrated by the user with the given
-   first and last names to a query."
-  [query first-name last-name]
-  (where query {:integrator_name (str first-name " " last-name)
-                :deleted         false
-                :is_public       true}))
 
 (defn count-public-apps-by-user
   "Counts the number of apps integrated by the user with the given first and last names."

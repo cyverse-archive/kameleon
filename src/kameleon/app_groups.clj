@@ -49,7 +49,7 @@
   "Retrieves an App Group by its ID."
   [app_group_id]
   (first (select analysis_group_listing
-                 (fields :id :name :description :is_public)
+                 (fields :id :hid :name :description :is_public)
                  (where {:id app_group_id}))))
 
 (defn create-app-group
