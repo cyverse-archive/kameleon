@@ -245,6 +245,7 @@
   ((comp :count first)
    (-> (select* analysis_listing)
        (aggregate (count :*) :count)
+       (where {:deleted false})
        (add-public-apps-by-user-where-clause email)
        (select))))
 
