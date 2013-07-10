@@ -228,3 +228,27 @@
     (log/debug "search-apps-for-user::search_query:"
                (sql-only (select search_query)))
     (select search_query)))
+
+(defn- add-public-apps-by-user-where-clause
+  "Adds a where clause that is capable of finding apps integrated by the user with the given
+   first and last names to a query."
+  [query first-name last-name]
+  (where query {:integrator_name (str first-name " " last-name)
+                :deleted         false
+                :is_public       true}))
+
+(defn count-public-apps-by-user
+  "Counts the number of apps integrated by the user with the given first and last names."
+  [first-name last-name]
+  ((comp :count first)
+   (-> (select* analysis_listing)
+       (aggregate (count :*) :count)
+       (add-public-apps-by-user-where-clause first-name last-name)
+       (select))))
+
+(defn list-public-apps-by-user
+  "Lists the apps integrated by the user with the given"
+  [workspace favorites-group-index first-name last-name query-opts]
+  (-> (get-app-listing-base-query workspace favorites-group-index query-opts)
+      (add-public-apps-by-user-where-clause first-name last-name)
+      (select)))

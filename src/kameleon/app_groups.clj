@@ -23,12 +23,18 @@
                (fields [:root_analysis_group_id :app_group_id])
                (where condition))))
 
+(defn get-visible-workspaces
+  "Gets the list of workspaces that are visible to the user with the given workspace
+   identifier."
+  [workspace-id]
+  (mapcat (fn [condition] (select workspace (where condition)))
+          [{:id workspace-id} {:is_public true}]))
+
 (defn get-visible-root-app-group-ids
   "Gets the list of internal root app group identifiers that are visible to the
    user with the given workspace identifier."
   [workspace-id]
-  (concat (get-root-app-group-ids {:id workspace-id})
-          (get-root-app-group-ids {:is_public true})))
+  (map :root_analysis_group_id (get-visible-workspaces workspace-id)))
 
 (defn load-root-app-groups-for-all-users
   "Gets the list of all root app group ids."
@@ -69,10 +75,9 @@
 (defn is-subgroup?
   "Determines if one group is a subgroup of another."
   [parent-group-id subgroup-id]
-  (> (count (select :template_group_group
-                    (where {:parent_group_id parent-group-id
-                            :subgroup_id     subgroup-id})))
-     0))
+  (pos? (count (select :template_group_group
+                       (where {:parent_group_id parent-group-id
+                               :subgroup_id     subgroup-id})))))
 
 (defn set-root-app-group
   "Sets the root app group for a workspace."
