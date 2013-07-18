@@ -2,7 +2,8 @@
   (:use [kameleon.core]
         [kameleon.entities]
         [korma.core]
-        [slingshot.slingshot :only [throw+]]))
+        [slingshot.slingshot :only [throw+]])
+  (:import [java.sql Timestamp]))
 
 (defn current-db-version
   "Determines the current database version."
@@ -282,3 +283,26 @@
           (order (or sort-field :date_submitted) (or sort-order :ASC))
           (limit row-limit)
           (offset row-offset)))
+
+(defn- insert-login-record
+  "Recrds when a user logs into the DE."
+  [user-id ip-address]
+  (insert :logins
+          (values {:user_id    user-id
+                   :ip_address ip-address})))
+
+(defn record-login
+  "Records when a user logs into the DE. Returns the recorded login time."
+  [username ip-address]
+  (-> (insert-login-record (get-user-id username) ip-address)
+      (:login_time)
+      (.getTime)))
+
+(defn record-logout
+  "Records when a user logs out of the DE."
+  [username ip-address login-time]
+  (update :logins
+          (set-fields {:logout_time (sqlfn :now)})
+          (where {:user_id                                       (get-user-id username)
+                  :ip_address                                    ip-address
+                  (sqlfn :date_trunc "milliseconds" :login_time) (Timestamp. login-time)})))
