@@ -286,15 +286,16 @@
 
 (defn- insert-login-record
   "Recrds when a user logs into the DE."
-  [user-id ip-address]
+  [user-id ip-address user-agent]
   (insert :logins
           (values {:user_id    user-id
-                   :ip_address ip-address})))
+                   :ip_address ip-address
+                   :user_agent user-agent})))
 
 (defn record-login
   "Records when a user logs into the DE. Returns the recorded login time."
-  [username ip-address]
-  (-> (insert-login-record (get-user-id username) ip-address)
+  [username ip-address user-agent]
+  (-> (insert-login-record (get-user-id username) ip-address user-agent)
       (:login_time)
       (.getTime)))
 
