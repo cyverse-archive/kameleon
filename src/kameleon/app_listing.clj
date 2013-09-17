@@ -195,8 +195,8 @@
   (let [search_term (str/replace
                       search_term
                       #"[%_*?]"
-                      {"%" "\\\\%",
-                       "_" "\\\\_",
+                      {"%" "\\%",
+                       "_" "\\_",
                        "*" "%",
                        "?" "_"})
         search_term (str "%" search_term "%")
