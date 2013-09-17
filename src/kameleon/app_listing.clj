@@ -208,7 +208,8 @@
       (where
         (or
           {(sql-lower :name) [like (sql-lower search_term)]}
-          {(sql-lower :description) [like (sql-lower search_term)]})))))
+          {(sql-lower :description) [like (sql-lower search_term)]}
+          {(sql-lower :integrator_name) [like (sql-lower search_term)]})))))
 
 (defn count-search-apps-for-user
   "Counts App search results that contain search_term in their name or
