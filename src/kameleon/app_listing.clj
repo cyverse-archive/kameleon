@@ -187,6 +187,18 @@
                            (map select-ids-fn root_app_ids))]
     (raw (str "(" union_select_ids ")"))))
 
+(defn- get-deployed-component-search-subselect
+  "Gets a subselect that fetches deployed components with names matching the
+   given search_term, inside an exists check, for each app in the main select."
+  [search_term]
+  (sqlfn* :exists
+          (subselect
+            :deployed_component_listing
+            (where {:analysis_listing.hid
+                    :deployed_component_listing.analysis_id})
+            (where {(sqlfn lower :deployed_component_listing.name)
+                    [like (sqlfn lower search_term)]}))))
+
 (defn- add-search-where-clauses
   "Adds where clauses to a base App search query to restrict results to Apps
    that contain search_term in their name or description, in all public groups
@@ -209,7 +221,8 @@
         (or
           {(sql-lower :name) [like (sql-lower search_term)]}
           {(sql-lower :description) [like (sql-lower search_term)]}
-          {(sql-lower :integrator_name) [like (sql-lower search_term)]})))))
+          {(sql-lower :integrator_name) [like (sql-lower search_term)]}
+          (get-deployed-component-search-subselect search_term))))))
 
 (defn count-search-apps-for-user
   "Counts App search results that contain search_term in their name or
