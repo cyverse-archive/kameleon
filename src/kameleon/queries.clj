@@ -249,8 +249,18 @@
           (where {:tr.uuid uuid})
           (order :trs.date_assigned :ASC)))
 
+(defn- remove-nil-values
+  "Removes entries with nil values from a map."
+  [m]
+  (into {} (remove (fn [[_ v]] (nil? v)) m)))
+
+(defmacro ^:private where-if-defined
+  "Adds a where clause to a query, filtering out all conditions for which the value is nil."
+  [query clause]
+  `(where ~query (remove-nil-values ~clause)))
+
 (defn- list-tool-requests-subselect
-  "Creates a subselect query that can be used to list the tool requests for a user."
+  "Creates a subselect query that can be used to list tool requests."
   [user]
   (subselect [:tool_requests :tr]
              (fields [:tr.uuid :uuid]
@@ -258,31 +268,36 @@
                      [:tr.version :version]
                      [:trsc.name :status]
                      [:trs.date_assigned :status_date]
-                     [:updater.username :updated_by])
+                     [:updater.username :updated_by]
+                     [:requestor.username :requested_by])
              (join [:users :requestor] {:tr.requestor_id :requestor.id})
              (join [:tool_request_statuses :trs] {:tr.id :trs.tool_request_id})
              (join [:tool_request_status_codes :trsc]
                    {:trs.tool_request_status_code_id :trsc.id})
              (join [:users :updater] {:trs.updater_id :updater.id})
-             (where {:requestor.username user})
+             (where-if-defined {:requestor.username user})
              (order :trs.date_assigned :ASC)))
 
 (defn list-tool-requests
   "Lists the tool requests that have been submitted by the user."
-  [user & {row-offset :offset
-           row-limit  :limit
-           sort-field :sort-field
-           sort-order :sort-order}]
-  (select [(list-tool-requests-subselect user) :req]
-          (fields :uuid :name :version
-                  [(sqlfn :first :status_date) :date_submitted]
-                  [(sqlfn :last :status) :status]
-                  [(sqlfn :last :status_date) :date_updated]
-                  [(sqlfn :last :updated_by) :updated_by])
-          (group :uuid :name :version)
-          (order (or sort-field :date_submitted) (or sort-order :ASC))
-          (limit row-limit)
-          (offset row-offset)))
+  [& {user       :username
+      row-offset :offset
+      row-limit  :limit
+      sort-field :sort-field
+      sort-order :sort-order
+      statuses   :statuses}]
+  (let [status-clause (if (nil? statuses) nil ['in statuses])]
+    (select [(list-tool-requests-subselect user) :req]
+                  (fields :uuid :name :version :requested_by
+                          [(sqlfn :first :status_date) :date_submitted]
+                          [(sqlfn :last :status) :status]
+                          [(sqlfn :last :status_date) :date_updated]
+                          [(sqlfn :last :updated_by) :updated_by])
+                  (group :uuid :name :version :requested_by)
+                  (order (or sort-field :date_submitted) (or sort-order :ASC))
+                  (where-if-defined {:status status-clause})
+                  (limit row-limit)
+                  (offset row-offset))))
 
 (defn- insert-login-record
   "Recrds when a user logs into the DE."
