@@ -287,17 +287,19 @@
       sort-order :sort-order
       statuses   :statuses}]
   (let [status-clause (if (nil? statuses) nil ['in statuses])]
-    (select [(list-tool-requests-subselect user) :req]
-                  (fields :uuid :name :version :requested_by
-                          [(sqlfn :first :status_date) :date_submitted]
-                          [(sqlfn :last :status) :status]
-                          [(sqlfn :last :status_date) :date_updated]
-                          [(sqlfn :last :updated_by) :updated_by])
-                  (group :uuid :name :version :requested_by)
-                  (order (or sort-field :date_submitted) (or sort-order :ASC))
-                  (where-if-defined {:status status-clause})
-                  (limit row-limit)
-                  (offset row-offset))))
+    (select
+     [(subselect [(list-tool-requests-subselect user) :req]
+                 (fields :uuid :name :version :requested_by
+                         [(sqlfn :first :status_date) :date_submitted]
+                         [(sqlfn :last :status) :status]
+                         [(sqlfn :last :status_date) :date_updated]
+                         [(sqlfn :last :updated_by) :updated_by])
+                 (group :uuid :name :version :requested_by)
+                 (order (or sort-field :date_submitted) (or sort-order :ASC))
+                 (limit row-limit)
+                 (offset row-offset))
+      :reqs]
+     (where-if-defined {:status status-clause}))))
 
 (defn- insert-login-record
   "Recrds when a user logs into the DE."
