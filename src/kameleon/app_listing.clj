@@ -50,9 +50,12 @@
   "Adds a where clause to an analysis listing query to restrict app results to
    an app group and all of its descendents."
   [base_listing_query app_group_id]
-  (where base_listing_query
-         {:template_group_template.template_group_id
-          [in (get-all-group-ids-subselect app_group_id)]}))
+  (-> base_listing_query
+    (join :template_group_template
+          (= :template_group_template.template_id
+             :analysis_listing.hid))
+    (where {:template_group_template.template_group_id
+            [in (get-all-group-ids-subselect app_group_id)]})))
 
 (defn- add-public-apps-by-user-where-clause
   "Adds a where clause to an analysis listing query to restrict app results to
@@ -68,9 +71,7 @@
   []
   (->
     (select* analysis_listing)
-    (aggregate (count :*) :total)
-    (join :template_group_template
-          (= :template_group_template.template_id :analysis_listing.hid))
+    (fields (raw "count(DISTINCT analysis_listing.id) AS total"))
     (where {:deleted false})))
 
 (defn count-apps-in-group-for-user
@@ -83,6 +84,9 @@
   ([app-group-id email]
      ((comp :total first)
       (-> (get-app-count-base-query)
+        (join :template_group_template
+              (= :template_group_template.template_id
+                 :analysis_listing.hid))
           (where (or {:template_group_template.template_group_id
                       [in (get-all-group-ids-subselect app-group-id)]}
                      {:integrator_email email
@@ -105,6 +109,7 @@
         ;; Bind the final query
         listing_query (->
                         (select* analysis_listing)
+                        (modifier "DISTINCT")
                         (fields :id
                                 :name
                                 :description
@@ -121,17 +126,6 @@
                                 :disabled
                                 :overall_job_type)
                         (where {:deleted false}))
-
-        ;; Join the template_group id and name
-        listing_query (-> listing_query
-                        (fields [:template_group.id :group_id]
-                                [:template_group.name :group_name])
-                        (join :template_group_template
-                              (= :template_group_template.template_id
-                                 :analysis_listing.hid))
-                        (join template_group
-                              (= :template_group_template.template_group_id
-                                 :template_group.hid)))
 
         ;; Bind is_favorite subqueries
         is_fav_subselect (get-is-fav-sqlfn
@@ -169,6 +163,9 @@
          (select)))
   ([app-group-id workspace faves-index query-opts email]
      (-> (get-app-listing-base-query workspace faves-index query-opts)
+       (join :template_group_template
+             (= :template_group_template.template_id
+                :analysis_listing.hid))
          (where (or {:template_group_template.template_group_id
                       [in (get-all-group-ids-subselect app-group-id)]}
                      {:integrator_email email
@@ -215,6 +212,9 @@
         sql-lower #(sqlfn lower %)]
     (->
       base_search_query
+      (join :template_group_template
+            (= :template_group_template.template_id
+               :analysis_listing.hid))
       (where {:template_group_template.template_group_id
               [in (get-public-group-ids-subselect workspace_id)]})
       (where
