@@ -57,6 +57,20 @@
     (where {:template_group_template.template_group_id
             [in (get-all-group-ids-subselect app_group_id)]})))
 
+(defn- add-app-group-plus-public-apps-where-clause
+  "Adds a where clause to an analysis listing query to restrict app results to
+   an app group and all of its descendents plus the set of public apps
+   integrated by a user."
+  [query app-group-id email]
+  (-> query
+    (join :template_group_template
+          (= :template_group_template.template_id
+             :analysis_listing.hid))
+    (where (or {:template_group_template.template_group_id
+                [in (get-all-group-ids-subselect app-group-id)]}
+               {:integrator_email email
+                :is_public        true}))))
+
 (defn- add-public-apps-by-user-where-clause
   "Adds a where clause to an analysis listing query to restrict app results to
    the set of public apps integrated by a user."
@@ -77,21 +91,15 @@
 (defn count-apps-in-group-for-user
   "Counts all of the apps in an app group and all of its descendents."
   ([app-group-id]
-     ((comp :total first)
+    ((comp :total first)
       (-> (get-app-count-base-query)
-          (add-app-group-where-clause app-group-id)
-          (select))))
+        (add-app-group-where-clause app-group-id)
+        (select))))
   ([app-group-id email]
-     ((comp :total first)
+    ((comp :total first)
       (-> (get-app-count-base-query)
-        (join :template_group_template
-              (= :template_group_template.template_id
-                 :analysis_listing.hid))
-          (where (or {:template_group_template.template_group_id
-                      [in (get-all-group-ids-subselect app-group-id)]}
-                     {:integrator_email email
-                      :is_public        true}))
-          (select)))))
+        (add-app-group-plus-public-apps-where-clause app-group-id email)
+        (select)))))
 
 (defn- get-app-listing-base-query
   "Gets an analysis_listing select query, setting any query limits and sorting
@@ -158,19 +166,13 @@
    given workspace (as returned by fetch-workspace-by-user-id) to mark
    whether each app is a favorite and to include the user's rating in each app."
   ([app-group-id workspace faves-index query-opts]
-     (-> (get-app-listing-base-query workspace faves-index query-opts)
-         (add-app-group-where-clause app-group-id)
-         (select)))
+    (-> (get-app-listing-base-query workspace faves-index query-opts)
+      (add-app-group-where-clause app-group-id)
+      (select)))
   ([app-group-id workspace faves-index query-opts email]
-     (-> (get-app-listing-base-query workspace faves-index query-opts)
-       (join :template_group_template
-             (= :template_group_template.template_id
-                :analysis_listing.hid))
-         (where (or {:template_group_template.template_group_id
-                      [in (get-all-group-ids-subselect app-group-id)]}
-                     {:integrator_email email
-                      :is_public        true}))
-         (select))))
+    (-> (get-app-listing-base-query workspace faves-index query-opts)
+      (add-app-group-plus-public-apps-where-clause app-group-id email)
+      (select))))
 
 (defn- get-public-group-ids-subselect
   "Gets a subselect that fetches the workspace template_group ID, public root
