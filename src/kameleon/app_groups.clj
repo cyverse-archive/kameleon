@@ -121,10 +121,14 @@
   (select analysis_group_listing
           (fields :id
                   :name)
+          (join :workspace
+                (= :analysis_group_listing.workspace_id
+                   :workspace.id))
           (join :template_group_template
                 (= :template_group_template.template_group_id
                    :analysis_group_listing.hid))
           (join analysis_listing
                 (= :analysis_listing.hid
                    :template_group_template.template_id))
-          (where {:analysis_listing.id app-id})))
+          (where {:analysis_listing.id app-id
+                  :is_public true})))
