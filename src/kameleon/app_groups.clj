@@ -114,3 +114,17 @@
     (insert :template_group_template
             (values {:template_group_id group-hid
                      :template_id       app-hid}))))
+
+(defn get-groups-for-app
+  "Retrieves a listing of all groups the app with the given ID is listed under."
+  [app-id]
+  (select analysis_group_listing
+          (fields :id
+                  :name)
+          (join :template_group_template
+                (= :template_group_template.template_group_id
+                   :analysis_group_listing.hid))
+          (join analysis_listing
+                (= :analysis_listing.hid
+                   :template_group_template.template_id))
+          (where {:analysis_listing.id app-id})))
