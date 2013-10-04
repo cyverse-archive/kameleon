@@ -88,7 +88,7 @@
 
 (defn decategorize-app
   "Removes an app from all categories in the database."
-  [{{app-id :id} :analysis}]
+  [app-id]
   (delete :template_group_template
           (where {:template_id (subselect transformation_activity
                                           (fields :hid)
