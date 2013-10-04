@@ -132,3 +132,17 @@
                    :template_group_template.template_id))
           (where {:analysis_listing.id app-id
                   :is_public true})))
+
+(defn get-suggested-groups-for-app
+  "Retrieves a listing of all groups the integrator recommneds for the app."
+  [app-id]
+  (select :suggested_groups
+          (fields :template_group.id
+                  :template_group.name)
+          (join :template_group
+                (= :template_group.hid
+                   :suggested_groups.template_group_id))
+          (join analysis_listing
+                (= :analysis_listing.hid
+                   :suggested_groups.transformation_activity_id))
+          (where {:analysis_listing.id app-id})))
