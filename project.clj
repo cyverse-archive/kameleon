@@ -1,4 +1,4 @@
-(defproject org.iplantc/kameleon "1.8.4-SNAPSHOT"
+(defproject org.iplantc/kameleon "2.0.0-SNAPSHOT"
   :description "Library for interacting with backend relational databases."
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.6"]
