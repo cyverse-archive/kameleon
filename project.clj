@@ -17,6 +17,6 @@
   :plugins [[lein-marginalia "0.7.1"]]
   :manifest {"db-version" "1.8.4:20140115.01"}
   :repositories [["sonatype-nexus-snapshots"
-                  {:url "https://oss.sonatype.org/content/repositories/snapshots"}]
-                 ["sonatype-nexus-staging"
-                  {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"}]])
+                  {:url "https://oss.sonatype.org/content/repositories/snapshots"}]]
+  :deploy-repositories [["sonatype-nexus-staging"
+                         {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"}]])
